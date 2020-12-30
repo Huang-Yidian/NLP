@@ -7,3 +7,6 @@ word_path= Father_folder+'/hyd_ner/ctb.50d.vec'
 
 msra_path = Father_folder+'/hyd_ner/msra'
 code_path = Father_folder+'/hyd_ner/code'
+
+chinese_seg_result_path = Father_folder+'/hyd_ner/segment.txt'
+local_lexicon = Father_folder+'/hyd_ner/local_lexicon.txt'

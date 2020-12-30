@@ -16,13 +16,15 @@ class NLP(object):
         self.label_type = label_type
         self.data_path = data_path
         self.lexicon_path = paths.word_path
+        self.global_tree = Tree()
+        self.local_tree = Tree()
 
         if self.data_type not in self.datasets:
             raise Exception('Data type must be one of msra/resume/weibo/renmin, got '+self.data_type)
         if self.lable_type not in self.lablesets:
             raise Exception('Label type must be one of bmes/bio/bioes, got '+ self.label_type)
 
-        self.lexicon = self.load_lexicon()
+        self.global_lexicon,self.local_lexicon = self.load_lexicon()
 
     def reform_data(self):
         """
@@ -85,50 +87,54 @@ class NLP(object):
         else:
           raise Exception('Only msra and bmes is supported now!')
 
-    def load_lexicon(self):
-        pass
+    def insert_search_tree(self):
+        for global_word in self.global_lexicon:
+            self.global_tree.insert(global_word)
 
-    def get_BME_prob(self,sentence):
-        char_prob = []
+        for local_word in self.local_lexicon:
+            self.local_tree.insert(local_word)
+
+
+    def get_BMES_freq(self,sentence):
+        """
+        Matching local lexicon in the given sentence and return a sequence of (B M E S) frequence.
+        :param sentence:
+        :return:
+        """
+
+        char_freq = []
         for i in sentence:
             if i == sentence[0]:
-                char_prob.append([1, 0, 0])
+                char_freq.append([1, 0, 0, 0])
             elif i == sentence[-1]:
-                char_prob.append([0, 0, 1])
+                char_freq.append([0, 0, 1, 0])
             elif i in self.chinese_punc:
-                char_prob.append([1, 0, 0])
+                char_freq.append([0, 0, 0, 1])
             else:
-                B = 1
-                M = 1
-                E = 1
-                for word in self.lexicon:
-                    word_num = re.search(i, str(word))
-                    if word_num != None:
-                        if i == str(word)[0]:
-                            B += 1
-                        elif i == str(word)[-1]:
-                            E += 1
-                        else:
-                            M += 1
-                    else:
-                        pass
+                B = 0
+                M = 0
+                E = 0
+                S = 0
 
-                char_prob.append([B, M, E])
-        return char_prob
 
-    def add_lexicon(self):
-        file =
-        f = open(file, "r", encoding="utf-8")
+                char_freq.append([B, M, E, S])
+        return char_freq
 
+    def add_segment_lexicon(self,word_freq):
+        """
+        Add words to local_lexicon.
+        :param word_freq: How many times the word occurred
+        :return:
+        """
+        file = paths.chinese_seg_path
         lexicon = []
-
         with open(paths.word_path, "r", encoding="utf-8") as g:
             ls = g.readlines()
             for line in ls:
                 if line != '\n':
                     word = line.split()[0]
                     lexicon.append(word)
-
+        f = open(file, "r", encoding="utf-8")
         lines = f.readlines()
         local_lexicon = {}
         f.close()
@@ -139,18 +145,30 @@ class NLP(object):
                     local_lexicon[word] = 1
                 else:
                     local_lexicon[word] = local_lexicon[word] + 1
-
-        count = 0
-        with open(paths.word_path, "a", encoding="utf-8") as f:
+        #static frequence of word
+        with open(paths.local_lexicon, "a", encoding="utf-8") as f:
             for word in local_lexicon.keys():
-                if (word not in lexicon) and len(word) > 1 and local_lexicon[word] > 3:
-                    count = count + 1
+                if (word not in lexicon) and len(word) > 1 and local_lexicon[word] > word_freq:
                     f.write(word+" 0.0 \n")
+                    #add word to local_lexicon without embedding (No need for my work)
+
 
     def load_lexicon(self):
-        return 0
-
-
+        global_lexicon = []
+        with open(paths.word_path, "r", encoding="utf-8") as g:
+            ls = g.readlines()
+            for line in ls:
+                if line != '\n':
+                    word = line.split()[0]
+                    global_lexicon.append(word)
+        local_lexicon=[]
+        with open(paths.local_lexicon, "r", encoding="utf-8") as g:
+            ls = g.readlines()
+            for line in ls:
+                if line != '\n':
+                    word = line.split()[0]
+                    local_lexicon.append(word)
+        return global_lexicon, local_lexicon
 
 
 
